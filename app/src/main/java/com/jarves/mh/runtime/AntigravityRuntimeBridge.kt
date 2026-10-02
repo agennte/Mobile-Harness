@@ -142,6 +142,7 @@ class AntigravityRuntimeBridge(
     private val saveConversationId: (String, String) -> Unit,
 ) : RuntimeBridge {
     private val installer = RuntimeInstaller(context)
+    private val preferences = com.jarves.mh.data.AppPreferences(context)
     private val checkpoints = WorkspaceCheckpoints(context.filesDir)
     private val eventBus = MutableSharedFlow<RuntimeEvent>(extraBufferCapacity = 64)
     override val events: Flow<RuntimeEvent> = eventBus
@@ -288,20 +289,33 @@ class AntigravityRuntimeBridge(
             checkpoints.createCheckpoint(projectId, workspace)
             val before = checkpoints.snapshot(workspace)
             val command = antigravityCommand(model(), effort(), conversationId(projectId))
+            val envMap = mutableMapOf<String, String>()
+            if (preferences.supabaseUrl.isNotBlank()) envMap["SUPABASE_URL"] = preferences.supabaseUrl
+            if (preferences.supabaseKey.isNotBlank()) envMap["SUPABASE_KEY"] = preferences.supabaseKey
+            if (preferences.supabaseDbUrl.isNotBlank()) envMap["DATABASE_URL"] = preferences.supabaseDbUrl
+            if (preferences.githubSyncToken.isNotBlank()) envMap["GITHUB_TOKEN"] = preferences.githubSyncToken
+
             val process = installer.process(
                 installed.proot,
                 installed.rootfs,
                 workspace,
-                emptyMap(),
+                envMap,
                 command,
                 guestWorkspacePath = "/workspace/$projectSlug",
                 emulateHardLinks = false,
             )
             activeProcess = process
             if (userStopRequested) process.destroy()
+
+            val supabasePromptInfo = if (preferences.supabaseUrl.isNotBlank()) {
+                "\nSupabase is configured:\n- SUPABASE_URL: ${preferences.supabaseUrl}\n- SUPABASE_KEY: ${preferences.supabaseKey}\n" +
+                (if (preferences.supabaseDbUrl.isNotBlank()) "- DATABASE_URL: ${preferences.supabaseDbUrl}\n" else "") +
+                "You have full permission to connect to this database, run migrations, and interact with Supabase storage."
+            } else ""
+
             val request = JSONObject()
                 .put("event", "user")
-                .put("message", JSONObject().put("content", antigravityWorkspacePrompt(projectSlug, prompt)))
+                .put("message", JSONObject().put("content", antigravityWorkspacePrompt(projectSlug, prompt, supabasePromptInfo)))
                 .toString() + "\n"
             process.outputStream.write(request.toByteArray())
             process.outputStream.flush()
@@ -538,9 +552,10 @@ private fun MutableList<String>.addAntigravitySelection(model: String, effort: S
     }
 }
 
-internal fun antigravityWorkspacePrompt(projectSlug: String, prompt: String): String = """
+internal fun antigravityWorkspacePrompt(projectSlug: String, prompt: String, supabaseInfo: String = ""): String = """
     <pocketdev_workspace>
     The active project workspace is /workspace/$projectSlug. Create, edit, read, run, and build project files only inside this directory. Do not create project output under ~/.gemini/antigravity-cli/scratch or any other scratch directory.
+    $supabaseInfo
     </pocketdev_workspace>
 
     $prompt

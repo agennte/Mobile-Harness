@@ -30,8 +30,10 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material3.Switch
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
@@ -106,7 +108,7 @@ import com.jarves.mh.ui.theme.AppThemeMode
 import com.jarves.mh.ui.theme.PocketOrange
 import kotlinx.coroutines.launch
 
-private enum class SettingsSection { APPEARANCE, TOOLS, RUNTIME, UPDATE_CHANNEL }
+private enum class SettingsSection { APPEARANCE, TOOLS, RUNTIME, UPDATE_CHANNEL, SUPABASE }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -371,6 +373,86 @@ fun SettingsScreen(
                                 },
                                 modifier = Modifier.fillMaxWidth(),
                             ) { Text("Open Developer options") }
+                        }
+                    }
+                }
+            }
+
+            item {
+                SettingsAccordion(
+                    title = "Supabase & Cloud Sync",
+                    subtitle = "Database, Storage & GitHub synchronization",
+                    icon = Icons.Default.Cloud,
+                    expanded = expanded == SettingsSection.SUPABASE,
+                    onClick = { toggle(SettingsSection.SUPABASE) },
+                ) {
+                    val prefs = remember { com.jarves.mh.data.AppPreferences(context) }
+                    var url by remember { mutableStateOf(prefs.supabaseUrl) }
+                    var key by remember { mutableStateOf(prefs.supabaseKey) }
+                    var dbUrl by remember { mutableStateOf(prefs.supabaseDbUrl) }
+                    var ghToken by remember { mutableStateOf(prefs.githubSyncToken) }
+                    var autoApprove by remember { mutableStateOf(prefs.autoApproveAll) }
+                    var voiceTts by remember { mutableStateOf(prefs.voiceTtsEnabled) }
+
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        OutlinedTextField(
+                            value = url,
+                            onValueChange = { url = it; prefs.supabaseUrl = it },
+                            label = { Text("Supabase URL") },
+                            placeholder = { Text("https://xyz.supabase.co") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        OutlinedTextField(
+                            value = key,
+                            onValueChange = { key = it; prefs.supabaseKey = it },
+                            label = { Text("Supabase API Key") },
+                            placeholder = { Text("anon / service_role key") },
+                            singleLine = true,
+                            visualTransformation = PasswordVisualTransformation(),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        OutlinedTextField(
+                            value = dbUrl,
+                            onValueChange = { dbUrl = it; prefs.supabaseDbUrl = it },
+                            label = { Text("PostgreSQL Connection URI (DATABASE_URL)") },
+                            placeholder = { Text("postgresql://postgres:pass@host:5432/postgres") },
+                            singleLine = true,
+                            visualTransformation = PasswordVisualTransformation(),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        OutlinedTextField(
+                            value = ghToken,
+                            onValueChange = { ghToken = it; prefs.githubSyncToken = it },
+                            label = { Text("GitHub Token for Cloud Sync") },
+                            placeholder = { Text("ghp_...") },
+                            singleLine = true,
+                            visualTransformation = PasswordVisualTransformation(),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
+                        ) {
+                            Column(Modifier.weight(1f)) {
+                                Text("Full Autonomy (Auto-Approve)", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                                Text("Skip manual confirmation for terminal commands and file edits", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            Switch(checked = autoApprove, onCheckedChange = { autoApprove = it; prefs.autoApproveAll = it })
+                        }
+
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
+                        ) {
+                            Column(Modifier.weight(1f)) {
+                                Text("Voice Dialog (TTS response)", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                                Text("Speak agent task responses aloud via Speech Synthesizer", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            Switch(checked = voiceTts, onCheckedChange = { voiceTts = it; prefs.voiceTtsEnabled = it })
                         }
                     }
                 }

@@ -62,6 +62,30 @@ class AppPreferences(private val context: Context) {
         get() = preferences.getString("github_login", "") ?: ""
         set(value) { preferences.edit().putString("github_login", value).apply() }
 
+    var supabaseUrl: String
+        get() = preferences.getString("supabase_url", "") ?: ""
+        set(value) { preferences.edit().putString("supabase_url", value).apply() }
+
+    var supabaseKey: String
+        get() = preferences.getString("supabase_key", "") ?: ""
+        set(value) { preferences.edit().putString("supabase_key", value).apply() }
+
+    var supabaseDbUrl: String
+        get() = preferences.getString("supabase_db_url", "") ?: ""
+        set(value) { preferences.edit().putString("supabase_db_url", value).apply() }
+
+    var voiceTtsEnabled: Boolean
+        get() = preferences.getBoolean("voice_tts_enabled", false)
+        set(value) { preferences.edit().putBoolean("voice_tts_enabled", value).apply() }
+
+    var autoApproveAll: Boolean
+        get() = preferences.getBoolean("auto_approve_all", true)
+        set(value) { preferences.edit().putBoolean("auto_approve_all", value).apply() }
+
+    var githubSyncToken: String
+        get() = preferences.getString("github_sync_token", "") ?: ""
+        set(value) { preferences.edit().putString("github_sync_token", value).apply() }
+
     fun saveAgentConversation(agent: AgentKind, projectId: String, chatId: String, conversationId: String?) {
         val key = agentConversationKey(agent, projectId, chatId)
         preferences.edit().apply {
